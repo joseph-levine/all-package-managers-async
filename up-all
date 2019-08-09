@@ -84,6 +84,8 @@ def main():
         'up-pip',
         # vim-plug https://github.com/junegunn/vim-plug
         f"vim -S up-vim.vim",
+        # pecl https://pecl.php.net/
+        ['pecl update-channels', 'pecl upgrade']
     ]
     pool.map(run_command, commands)
 
