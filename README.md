@@ -42,11 +42,15 @@ Clone to somewhere in your path, and that should be it
 
 ## Why?
 Most package managers claim to be the only one you need. And maybe
-there's one that is! (I'm looking at you [Homebrew][1])
+there's one that is! (I'm looking at you [Homebrew][1]) But it can be
+frustrating when you have six different maangers, all with more security
+updates tahn you can handle.
 
-Adding to that headache, is that many truly stellar tools only come as
-git repositories.
+Adding to that headache, many truly stellar tools only come asgit
+repositories.
 
-Until then, here's a tool to run them all.
+Until we have one Package Manager to rule them all, One Package Manager
+to find them, here's a tool to bring them all and bind them.
+Asynchronously.
 
 [1]:https://brew.sh 
