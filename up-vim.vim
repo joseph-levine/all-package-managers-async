@@ -1,0 +1,3 @@
+PlugUpdate
+PlugUpgrade
+qall
