@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+from multiprocessing import Pool
+from pathlib import Path
+from subprocess import check_call, CalledProcessError
+from sys import argv
+
+
+def git_pull(parent):
+    try:
+        print('\033[92m' + f"git pull -C {parent} pull " + '\033[0m')
+        check_call(['git', '-C', parent, 'pull'])
+    except CalledProcessError:
+        pass
+
+
+def up_git():
+    pool = Pool()
+    path_argument = argv[1] if len(argv) > 1 else Path.home()
+    git_directories = Path(path_argument).glob('**/.git')
+    directories = [git.parent for git in git_directories]
+    pool.map(git_pull, directories)
+
+
+if __name__ == '__main__':
+    up_git()
