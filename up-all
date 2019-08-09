@@ -33,11 +33,11 @@ def main():
         # oh-my-zsh https://ohmyz.sh/
         f"git -C {home}/.oh-my-zsh pull --rebase --stat origin master",
         # oh-my-zsh custom plugins https://github.com/robbyrussell/oh-my-zsh/wiki/Customization#overriding-and-adding-plugins
-        f"git-pull-async {home}/.oh-my-zsh",
+        f"up-git {home}/.oh-my-zsh",
         # pip https://pypi.org/project/pip/
-        'upPip',
+        'up-pip',
         # vim-plug https://github.com/junegunn/vim-plug
-        f"vim -S {home}/bin/upVim.vim"
+        f"vim -S up-vim.vim"
     ]
     pool.map(run_command, commands)
 
