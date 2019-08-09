@@ -46,7 +46,7 @@ there's one that is! (I'm looking at you [Homebrew][1]) But it can be
 frustrating when you have six different maangers, all with more security
 updates tahn you can handle.
 
-Adding to that headache, many truly stellar tools only come asgit
+Adding to that headache, many truly stellar tools only come as git
 repositories.
 
 Until we have one Package Manager to rule them all, One Package Manager
