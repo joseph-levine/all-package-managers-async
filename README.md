@@ -43,8 +43,8 @@ Clone to somewhere in your path, and that should be it
 ## Why?
 Most package managers claim to be the only one you need. And maybe
 there's one that is! (I'm looking at you [Homebrew][1]) But it can be
-frustrating when you have six different maangers, all with more security
-updates tahn you can handle.
+frustrating when you have six different mangers, all with more security
+updates than you can handle.
 
 Adding to that headache, many truly stellar tools only come as git
 repositories.
