@@ -1,30 +1,69 @@
 #!/usr/bin/env python3
 from multiprocessing import Pool
+from os import linesep
 from pathlib import Path
 from shutil import which
 from subprocess import run, CalledProcessError, DEVNULL, PIPE
-from typing import Union
+from textwrap import indent
+from typing import List, Union
+
+
+class TermColor:
+    BLACK: str = '\033[30m'
+    RED: str = '\033[31m'
+    GREEN: str = '\033[32m'
+    YELLOW: str = '\033[33m'
+    BLUE: str = '\033[34m'
+    MAGENTA: str = '\033[35m'
+    CYAN: str = '\033[36m'
+    WHITE: str = '\033[37m'
+    RESET: str = '\033[0m'
+
+
+def normalize_command_group(command_group: Union[str, list]) -> List[str]:
+    if isinstance(command_group, list):
+        return command_group
+    elif isinstance(command_group, str):
+        return [command_group]
+    else:
+        print(TermColor.RED + 'Invalid command format.' + linesep + 'Exiting...')
+        exit(-1)
+
+
+def any_params_contain_git_dir(command_parameters: List[str]) -> bool:
+    for parameter in command_parameters:
+        if Path(parameter + '/.git').is_dir():
+            return True
+    return False
 
 
 def run_command(commands: Union[str, list]):
-    commands_to_run = commands
-    # single commands can be passed, as well as a series, so check if
-    if isinstance(commands, str):
-        commands_to_run = [commands]
+    commands_group = normalize_command_group(commands)
 
-    for command in commands_to_run:
-        command_array = command.split(' ')
-        if which(command_array[0]) is None:
-            print('\033[35m' + command_array[0] + '\033[0m not found')
+    for command in commands_group:
+        command_parameters = command.split(' ')
+        executable = command_parameters[0]
+
+        # Check if the executable actually exists
+        if which(executable) is None:
+            print('Command ' + TermColor.MAGENTA + executable + TermColor.RESET + ' not found')
             continue
+
+        # Check for git dir before trying git on it
+        if executable == 'git' or executable == 'up-git':
+            if not any_params_contain_git_dir(command_parameters[1:]):
+                print(TermColor.YELLOW + ' '.join(command_parameters) + TermColor.RESET + ' git directory not found')
+                continue
+
         try:
-            print('\033[36m' + command + '\033[0m starting')
-            run(command_array, check=True, stdout=DEVNULL, stderr=PIPE)
-            print('\033[32m' + command + '\033[0m complete')
+            print(TermColor.CYAN + command + TermColor.RESET + ' starting')
+            # Actually run
+            run(command_parameters, check=True, stdout=DEVNULL, stderr=PIPE, universal_newlines=True)
+            print(TermColor.GREEN + command + TermColor.RESET + ' complete')
         except CalledProcessError as called_process_error:
             message = called_process_error.stderr or 'No Message'
-            print('\033[31m' + command + ' Error\n\033[0m' + message)
-            pass
+            indented_message = indent(message, '  ')
+            print(TermColor.RED + command + TermColor.RESET + ' error' + linesep + TermColor.RED + indented_message)
 
 
 def main():
