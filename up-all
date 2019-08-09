@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+from multiprocessing import Pool
+from pathlib import Path
+from subprocess import run, CalledProcessError, DEVNULL, PIPE
+
+
+def run_command(commands):
+    commands_to_run = commands
+    if isinstance(commands, str):
+        commands_to_run = [commands]
+
+    for command in commands_to_run:
+        try:
+            print('\033[36m' + command + '\033[0m starting')
+            run(command.split(' '), check=True, stdout=DEVNULL, stderr=PIPE)
+            print('\033[32m' + command + '\033[0m complete')
+        except CalledProcessError as called_process_error:
+            message = called_process_error.stderr or 'No Message.'
+            print('\033[31m' + command + ' Error\n\033[0m' + message)
+            pass
+
+
+def main():
+    pool = Pool()
+    home = str(Path.home())
+    commands = [
+        # homebrew https://brew.sh/
+        ['brew update', 'brew outdated', 'brew upgrade', 'brew cleanup'],
+        # yarn https://yarnpkg.com/en/
+        'yarn global upgrade',
+        # composer https://getcomposer.org/
+        'composer global update',
+        # oh-my-zsh https://ohmyz.sh/
+        f"git -C {home}/.oh-my-zsh pull --rebase --stat origin master",
+        # oh-my-zsh custom plugins https://github.com/robbyrussell/oh-my-zsh/wiki/Customization#overriding-and-adding-plugins
+        f"git-pull-async {home}/.oh-my-zsh",
+        # pip https://pypi.org/project/pip/
+        'upPip',
+        # vim-plug https://github.com/junegunn/vim-plug
+        f"vim -S {home}/bin/upVim.vim"
+    ]
+    pool.map(run_command, commands)
+
+
+if __name__ == '__main__':
+    main()
