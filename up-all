@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
 from multiprocessing import Pool
 from pathlib import Path
+from shutil import which
 from subprocess import run, CalledProcessError, DEVNULL, PIPE
+from typing import Union
 
 
-def run_command(commands):
+def run_command(commands: Union[str, list]):
     commands_to_run = commands
+    # single commands can be passed, as well as a series, so check if
     if isinstance(commands, str):
         commands_to_run = [commands]
 
     for command in commands_to_run:
+        command_array = command.split(' ')
+        if which(command_array[0]) is None:
+            print('\033[35m' + command_array[0] + '\033[0m not found')
+            continue
         try:
             print('\033[36m' + command + '\033[0m starting')
-            run(command.split(' '), check=True, stdout=DEVNULL, stderr=PIPE)
+            run(command_array, check=True, stdout=DEVNULL, stderr=PIPE)
             print('\033[32m' + command + '\033[0m complete')
         except CalledProcessError as called_process_error:
-            message = called_process_error.stderr or 'No Message.'
+            message = called_process_error.stderr or 'No Message'
             print('\033[31m' + command + ' Error\n\033[0m' + message)
             pass
 
@@ -37,7 +44,7 @@ def main():
         # pip https://pypi.org/project/pip/
         'up-pip',
         # vim-plug https://github.com/junegunn/vim-plug
-        f"vim -S up-vim.vim"
+        f"vim -S up-vim.vim",
     ]
     pool.map(run_command, commands)
 
