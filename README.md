@@ -39,6 +39,7 @@ Clone to somewhere in your path, and that should be it
 - [ ] Better project structure
 - [ ] Installer
 - [ ] Homebrew
+- [ ] Cache list of installed package managers
 
 ## Why?
 Most package managers claim to be the only one you need. And maybe
