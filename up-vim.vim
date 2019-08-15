@@ -1,3 +1,0 @@
-PlugUpdate
-PlugUpgrade
-qall

@@ -83,7 +83,7 @@ def main():
         # pip https://pypi.org/project/pip/
         'up-pip',
         # vim-plug https://github.com/junegunn/vim-plug
-        f"vim -S up-vim.vim",
+        'vim -c PlugUpdate -c PlugUpgrade -c quitall',
         # pecl https://pecl.php.net/
         ['pecl update-channels', 'pecl upgrade']
     ]
