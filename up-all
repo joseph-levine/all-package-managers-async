@@ -1,14 +1,29 @@
 #!/usr/bin/env python3
-from multiprocessing import Pool
+from abc import ABC, abstractmethod
+from multiprocessing.pool import Pool
 from os import linesep
 from pathlib import Path
+from pkg_resources import working_set
 from shutil import which
-from subprocess import run, CalledProcessError, DEVNULL, PIPE
+from subprocess import CalledProcessError, DEVNULL, PIPE, run
 from textwrap import indent
-from typing import List, Union
+from types import FunctionType
+from typing import Any, Dict, Generator, List, Optional, Union
 
 
-class TermColor:
+# Helper Classes
+class TermStyle:
+    RESET: str = '\033[0m'
+    BOLD: str = '\033[1m'
+    UNBOLD: str = '\033[21m'
+    DIM: str = '\033[2m'
+    UNDIM: str = '\033[22m'
+    UNDERLINE: str = '\033[4m'
+    UNUNDERLINE: str = '\033[24m'
+    BLINK: str = '\033[5m'
+    UNBLINK: str = '\033[25m'
+    REVERSE: str = '\033[7m'
+    UNREVERSE: str = '\033[27m'
     BLACK: str = '\033[30m'
     RED: str = '\033[31m'
     GREEN: str = '\033[32m'
@@ -16,78 +31,213 @@ class TermColor:
     BLUE: str = '\033[34m'
     MAGENTA: str = '\033[35m'
     CYAN: str = '\033[36m'
-    WHITE: str = '\033[37m'
-    RESET: str = '\033[0m'
+    LIGHT_GRAY: str = '\033[37m'
+    DARK_GRAY: str = '\033[90m'
+    LIGHT_RED: str = '\033[91m'
+    LIGHT_GREEN: str = '\033[92m'
+    LIGHT_YELLOW: str = '\033[93m'
+    LIGHT_BLUE: str = '\033[94m'
+    LIGHT_MAGENTA: str = '\033[95m'
+    LIGHT_CYAN: str = '\033[96m'
+    WHITE: str = '\033[97m'
+    BG_DEFAULT: str = '\033[49m'
+    BG_BLACK: str = '\033[40m'
+    BG_RED: str = '\033[41m'
+    BG_GREEN: str = '\033[42m'
+    BG_YELLOW: str = '\033[43m'
+    BG_BLUE: str = '\033[44m'
+    BG_MAGENTA: str = '\033[45m'
+    BG_CYAN: str = '\033[46m'
+    BG_LIGHT_GRAY: str = '\033[47m'
+    BG_DARK_GRAY: str = '\033[100m'
+    BG_LIGHT_RED: str = '\033[101m'
+    BG_LIGHT_GREEN: str = '\033[102m'
+    BG_LIGHT_YELLOW: str = '\033[103m'
+    BG_LIGHT_BLUE: str = '\033[104m'
+    BG_LIGHT_MAGENTA: str = '\033[105m'
+    BG_LIGHT_CYAN: str = '\033[106m'
+    BG_WHITE: str = '\033[107m'
 
 
-def normalize_command_group(command_group: Union[str, list]) -> List[str]:
-    if isinstance(command_group, list):
-        return command_group
-    elif isinstance(command_group, str):
-        return [command_group]
-    else:
-        print(TermColor.RED + 'Invalid command format.' + linesep + 'Exiting...')
-        exit(-1)
+def up_pip(**kwargs: Dict[str, Any]):
+    packages = [dist.project_name for dist in working_set]
+    full_command = ['pip3', 'install', '--upgrade'] + packages
+    run(full_command, **kwargs)
 
 
-def any_params_contain_git_dir(command_parameters: List[str]) -> bool:
-    for parameter in command_parameters:
-        if Path(parameter + '/.git').is_dir():
-            return True
-    return False
+# Command Classes
+class Command(ABC):
+    @abstractmethod
+    def get_function(self, **kwargs: Dict[str, Any]) -> FunctionType:
+        pass
+
+    @abstractmethod
+    def isvalid(self) -> bool:
+        pass
 
 
-def run_command(commands: Union[str, list]):
-    commands_group = normalize_command_group(commands)
+class NativeCommand(Command):
+    def __init__(self, native_call: FunctionType, description: Optional[str]):
+        self.__native_call = native_call
+        self.__description = description
 
-    for command in commands_group:
-        command_parameters = command.split(' ')
-        executable = command_parameters[0]
+    def get_function(self, **kwargs: Dict[str, Any]) -> FunctionType:
+        return self.__native_call
+
+    def isvalid(self) -> bool:
+        return True
+
+    def __repr__(self):
+        from inspect import getsource
+        return getsource(self.__native_call)
+
+    def __str__(self):
+        return str(self.__description) or 'Native Code'
+
+
+class ShellCommand(Command):
+    def __init__(self, full_command: str):
+        self.__full_command = full_command
+
+    def __command_parts(self):
+        return self.__full_command.split(' ')
+
+    def __executable(self):
+        return self.__command_parts()[0]
+
+    def get_function(self, **kwargs) -> FunctionType:
+        def func():
+            run(self.__command_parts(), **kwargs)
+
+        return func
+
+    def isvalid(self) -> bool:
+        return which(self.__command_parts()[0]) is not None
+
+    def __repr__(self):
+        return self.__full_command
+
+    def __str__(self):
+        return self.__executable()
+
+
+class GitCommand(Command):
+    def __init__(self, path: Path):
+        self.__path = path
+
+    def get_function(self, **kwargs: Dict[str, Any]) -> FunctionType:
+        def func():
+            run('git -C ' + str(self.__path.absolute()) + ' reset --hard @{upstream}', **kwargs)
+
+        return func
+
+    def isvalid(self) -> bool:
+        return self.__path.joinpath('.git').is_dir()
+
+    def __repr__(self):
+        return 'git -C ' + str(self.__path.absolute()) + ' reset --hard @{upstream}'
+
+    def __str__(self):
+        return 'git on ' + str(self.__path)
+
+
+class RecursiveGitCommand(Command):
+    def __init__(self, path: Path):
+        self.__path = path
+
+    def __git_directories(self) -> Generator[Path, None, None]:
+        return self.__path.glob('**/.git')
+
+    @staticmethod
+    def git_pull(directory: Path, kwargs: Dict[str, Any]):
+        try:
+            shell_command = ['git', '-C', str(directory), 'reset', '--hard', '@{upstream}']
+            print(TermStyle.LIGHT_GRAY + ' '.join(shell_command) + TermStyle.RESET)
+            run(shell_command, **kwargs)
+        except CalledProcessError:
+            pass
+
+    def get_function(self, **kwargs: Dict[str, Any]) -> FunctionType:
+        def func():
+            directories = [git.parent for git in self.__git_directories()]
+            with Pool() as pool:
+                params = [(x, kwargs) for x in directories]
+                pool.starmap(self.git_pull, params)
+
+        return func
+
+    def isvalid(self) -> bool:
+        return len(list(self.__git_directories())) > 0
+
+    def __repr__(self):
+        return 'recursive git of ' + str(self.__path)
+
+
+def command_factory(command: Union[str, Path, FunctionType]) -> Command:
+    if isinstance(command, Command):
+        return command
+    elif isinstance(command, str):
+        return ShellCommand(command)
+    elif isinstance(command, Path):
+        return RecursiveGitCommand(command)
+    elif isinstance(command, FunctionType):
+        return NativeCommand(command)
+
+
+# run command set
+def run_command(commands: Union[List[Command]]):
+    for command in commands:
 
         # Check if the executable actually exists
-        if which(executable) is None:
-            print('Command ' + TermColor.MAGENTA + executable + TermColor.RESET + ' not found')
+        if not command.isvalid():
+            print('Command ' + TermStyle.MAGENTA + repr(command) + TermStyle.RESET + ' is invalid')
             continue
 
-        # Check for git dir before trying git on it
-        if executable == 'git' or executable == 'up-git':
-            if not any_params_contain_git_dir(command_parameters[1:]):
-                print(TermColor.YELLOW + ' '.join(command_parameters) + TermColor.RESET + ' git directory not found')
-                continue
-
         try:
-            print(TermColor.CYAN + command + TermColor.RESET + ' starting')
-            # Actually run
-            run(command_parameters, check=True, stdout=DEVNULL, stderr=PIPE, universal_newlines=True)
-            print(TermColor.GREEN + command + TermColor.RESET + ' complete')
+            print(TermStyle.CYAN + str(command) + TermStyle.RESET + ' starting')
+            # create run call
+            to_run = command.get_function(check=True, stdout=DEVNULL, stderr=PIPE, universal_newlines=True)
+            # go!
+            to_run()
+            print(TermStyle.GREEN + str(command) + TermStyle.RESET + ' complete')
         except CalledProcessError as called_process_error:
             message = called_process_error.stderr or 'No Message'
             indented_message = indent(message, '  ')
-            print(TermColor.RED + command + TermColor.RESET + ' error' + linesep + TermColor.RED + indented_message)
+            print(
+                TermStyle.RED + str(command) + TermStyle.RESET + ' error' + linesep + TermStyle.RED + indented_message)
 
 
 def main():
-    pool = Pool()
-    home = str(Path.home())
+    parallel_mode = False
     commands = [
         # homebrew https://brew.sh/
         ['brew update', 'brew outdated', 'brew upgrade', 'brew cleanup'],
+
         # yarn https://yarnpkg.com/en/
-        'yarn global upgrade',
+        ['yarn global upgrade'],
+
         # composer https://getcomposer.org/
-        'composer global update',
+        ['composer global update'],
+
         # oh-my-zsh https://ohmyz.sh/
-        f"git -C {home}/.oh-my-zsh pull --rebase --stat origin master",
-        # oh-my-zsh custom plugins https://github.com/robbyrussell/oh-my-zsh/wiki/Customization#overriding-and-adding-plugins
-        f"up-git {home}/.oh-my-zsh",
+        [RecursiveGitCommand(Path.home().joinpath('.oh-my-zsh'))],
+
         # pip https://pypi.org/project/pip/
-        'up-pip',
+        [NativeCommand(up_pip, 'update pip')],
+
         # vim-plug https://github.com/junegunn/vim-plug
-        'vim -c PlugUpdate -c PlugUpgrade -c quitall',
+        ['vim -c PlugUpdate -c PlugUpgrade -c quitall'],
+
         # pecl https://pecl.php.net/
         ['pecl update-channels', 'pecl upgrade']
     ]
-    pool.map(run_command, commands)
+    command_objects = list(map(lambda arr: list(map(lambda c: command_factory(c), arr)), commands))
+    if parallel_mode:
+        with Pool() as pool:
+            pool.map(run_command, command_objects)
+    else:
+        for command_object in command_objects:
+            run_command(command_object)
 
 
 if __name__ == '__main__':
