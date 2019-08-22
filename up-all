@@ -231,7 +231,7 @@ def main():
         # pecl https://pecl.php.net/
         ['pecl update-channels', 'pecl upgrade']
     ]
-    command_objects = list(map(lambda arr: list(map(lambda c: command_factory(c), arr)), commands))
+    command_objects = [[command_factory(command) for command in command_list] for command_list in commands]
     if parallel_mode:
         with Pool() as pool:
             pool.map(run_command, command_objects)
