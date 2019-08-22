@@ -41,6 +41,12 @@ Clone to somewhere in your path, and that should be it
 - [ ] Homebrew
 - [ ] Cache list of installed package managers
 
+## Contributing
+Yes! Make a pull request, I'll try to get it in.
+
+Especially welcome are more package manager update lines. The goal is
+to be as comprehensive as possible.
+
 ## Why?
 Most package managers claim to be the only one you need. And maybe
 there's one that is! (I'm looking at you [Homebrew][1]) But it can be
