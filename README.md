@@ -10,13 +10,6 @@ Python 3.5 is likely the minimum version, but I've only run it on Python
 ## Installation
 Clone to somewhere in your path, and that should be it
 
-## Command Reference
-| Command | Description |
-|---|---|
-| up-all | Updates all available packages in package managers |
-| up-git | Updates all git repositories in a given directory (default = `~`) |
-| up-pip | Updates all python 3 global pip packages |
-
 ### Supported Package Managers
 | Manager | URL |
 |---|---|
@@ -28,13 +21,8 @@ Clone to somewhere in your path, and that should be it
 | vim-plug | https://github.com/junegunn/vim-plug |
 | yarn | https://yarnpkg.com/ |
 
-### Helper Files
-| File | Description |
-|---|---|
-| up-vim.vim | Updates all Vim Plug packages |
-
-
 ## Future
+- [x] Single file (easier to install for now)
 - [ ] More package managers
 - [ ] Better project structure
 - [ ] Installer
