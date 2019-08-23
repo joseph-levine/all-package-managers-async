@@ -207,16 +207,16 @@ def run_command(commands: List[Command], queue: JoinableQueue):
 
 def main():
     commands = [
-        # homebrew https://brew.sh/
+        # Homebrew https://brew.sh/
         ['brew update', 'brew outdated', 'brew upgrade', 'brew cleanup'],
 
-        # yarn https://yarnpkg.com/en/
+        # Yarn https://yarnpkg.com/en/
         ['yarn global upgrade'],
 
-        # composer https://getcomposer.org/
+        # Composer https://getcomposer.org/
         ['composer global update'],
 
-        # oh-my-zsh https://ohmyz.sh/
+        # Oh My Zsh https://ohmyz.sh/
         [RecursiveGitCommand(Path.home().joinpath('.oh-my-zsh'))],
 
         # pip https://pypi.org/project/pip/
@@ -225,7 +225,7 @@ def main():
         # vim-plug https://github.com/junegunn/vim-plug
         ['vim -c PlugUpdate -c PlugUpgrade -c quitall'],
 
-        # pecl https://pecl.php.net/
+        # PECL https://pecl.php.net/
         ['pecl update-channels', 'pecl upgrade']
     ]
 

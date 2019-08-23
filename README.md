@@ -14,7 +14,7 @@ Clone to somewhere in your path, and that should be it
 | Manager | URL |
 |---|---|
 | composer | https://getcomposer.org/ |
-| homebrew | https://brew.sh/ |
+| Homebrew | https://brew.sh/ |
 | oh-my-zsh | https://ohmyz.sh/ |
 | oh-my-zsh custom plugins | https://github.com/robbyrussell/oh-my-zsh/wiki/Customization#overriding-and-adding-plugins |
 | pip | https://pypi.org/project/pip/ |
