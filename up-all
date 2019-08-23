@@ -1,29 +1,30 @@
 #!/usr/bin/env python3
 from abc import ABC, abstractmethod
-from multiprocessing.pool import Pool
+from multiprocessing import cpu_count, JoinableQueue, Process
 from os import linesep
 from pathlib import Path
 from pkg_resources import working_set
 from shutil import which
 from subprocess import CalledProcessError, DEVNULL, PIPE, run
+from sys import executable
 from textwrap import indent
 from types import FunctionType
-from typing import Any, Dict, Generator, List, Optional, Union
+from typing import Callable, Generator, List, Optional, Union
 
 
 # Helper Classes
 class TermStyle:
     RESET: str = '\033[0m'
     BOLD: str = '\033[1m'
-    UNBOLD: str = '\033[21m'
+    NO_BOLD: str = '\033[21m'
     DIM: str = '\033[2m'
-    UNDIM: str = '\033[22m'
+    NO_DIM: str = '\033[22m'
     UNDERLINE: str = '\033[4m'
-    UNUNDERLINE: str = '\033[24m'
+    NO_UNDERLINE: str = '\033[24m'
     BLINK: str = '\033[5m'
-    UNBLINK: str = '\033[25m'
+    NO_BLINK: str = '\033[25m'
     REVERSE: str = '\033[7m'
-    UNREVERSE: str = '\033[27m'
+    NO_REVERSE: str = '\033[27m'
     BLACK: str = '\033[30m'
     RED: str = '\033[31m'
     GREEN: str = '\033[32m'
@@ -59,16 +60,17 @@ class TermStyle:
     BG_WHITE: str = '\033[107m'
 
 
-def up_pip(**kwargs: Dict[str, Any]):
+# Native Command Calls
+def up_pip(**kwargs):
     packages = [dist.project_name for dist in working_set]
-    full_command = ['pip3', 'install', '--upgrade'] + packages
+    full_command = [executable, '-m', 'pip', 'install', '--upgrade'] + packages
     run(full_command, **kwargs)
 
 
 # Command Classes
 class Command(ABC):
     @abstractmethod
-    def get_function(self, **kwargs: Dict[str, Any]) -> FunctionType:
+    def get_function(self, queue: JoinableQueue, **kwargs) -> FunctionType:
         pass
 
     @abstractmethod
@@ -77,11 +79,11 @@ class Command(ABC):
 
 
 class NativeCommand(Command):
-    def __init__(self, native_call: FunctionType, description: Optional[str]):
+    def __init__(self, native_call: Callable, description: Optional[str]):
         self.__native_call = native_call
         self.__description = description
 
-    def get_function(self, **kwargs: Dict[str, Any]) -> FunctionType:
+    def get_function(self, queue: JoinableQueue, **kwargs) -> FunctionType:
         return self.__native_call
 
     def isvalid(self) -> bool:
@@ -105,7 +107,7 @@ class ShellCommand(Command):
     def __executable(self):
         return self.__command_parts()[0]
 
-    def get_function(self, **kwargs) -> FunctionType:
+    def get_function(self, queue: JoinableQueue, **kwargs) -> FunctionType:
         def func():
             run(self.__command_parts(), **kwargs)
 
@@ -121,21 +123,16 @@ class ShellCommand(Command):
         return self.__executable()
 
 
-class GitCommand(Command):
+class GitCommand(ShellCommand):
     def __init__(self, path: Path):
         self.__path = path
-
-    def get_function(self, **kwargs: Dict[str, Any]) -> FunctionType:
-        def func():
-            run('git -C ' + str(self.__path.absolute()) + ' reset --hard @{upstream}', **kwargs)
-
-        return func
+        super().__init__('git -C ' + str(path.absolute()) + ' reset --hard @{upstream}')
 
     def isvalid(self) -> bool:
         return self.__path.joinpath('.git').is_dir()
 
     def __repr__(self):
-        return 'git -C ' + str(self.__path.absolute()) + ' reset --hard @{upstream}'
+        return super().__repr__()
 
     def __str__(self):
         return 'git on ' + str(self.__path)
@@ -146,23 +143,16 @@ class RecursiveGitCommand(Command):
         self.__path = path
 
     def __git_directories(self) -> Generator[Path, None, None]:
+        # find directories that contain a .git folder
         return self.__path.glob('**/.git')
 
-    @staticmethod
-    def git_pull(directory: Path, kwargs: Dict[str, Any]):
-        try:
-            shell_command = ['git', '-C', str(directory), 'reset', '--hard', '@{upstream}']
-            print(TermStyle.LIGHT_GRAY + ' '.join(shell_command) + TermStyle.RESET)
-            run(shell_command, **kwargs)
-        except CalledProcessError:
-            pass
-
-    def get_function(self, **kwargs: Dict[str, Any]) -> FunctionType:
+    def get_function(self, queue: JoinableQueue, **kwargs) -> FunctionType:
         def func():
-            directories = [git.parent for git in self.__git_directories()]
-            with Pool() as pool:
-                params = [(x, kwargs) for x in directories]
-                pool.starmap(self.git_pull, params)
+            # create commands
+            git_commands = [GitCommand(git.parent) for git in self.__git_directories()]
+            # add them to the queue
+            for git_command in git_commands:
+                queue.put([git_command])
 
         return func
 
@@ -173,30 +163,38 @@ class RecursiveGitCommand(Command):
         return 'recursive git of ' + str(self.__path)
 
 
-def command_factory(command: Union[str, Path, FunctionType]) -> Command:
+def command_factory(command: Union[Command, str, Path, FunctionType]) -> Command:
     if isinstance(command, Command):
         return command
     elif isinstance(command, str):
         return ShellCommand(command)
     elif isinstance(command, Path):
-        return RecursiveGitCommand(command)
+        return GitCommand(command)
     elif isinstance(command, FunctionType):
-        return NativeCommand(command)
+        return NativeCommand(command, None)
+
+
+def read_process(queue: JoinableQueue):
+    while True:
+        # retrieve task (command)
+        command = queue.get()
+        # execute command
+        run_command(command, queue)
+        # let the queue know to remove it
+        queue.task_done()
 
 
 # run command set
-def run_command(commands: Union[List[Command]]):
+def run_command(commands: List[Command], queue: JoinableQueue):
     for command in commands:
-
-        # Check if the executable actually exists
+        # Check if the command can run
         if not command.isvalid():
             print('Command ' + TermStyle.MAGENTA + repr(command) + TermStyle.RESET + ' is invalid')
             continue
-
         try:
             print(TermStyle.CYAN + str(command) + TermStyle.RESET + ' starting')
             # create run call
-            to_run = command.get_function(check=True, stdout=DEVNULL, stderr=PIPE, universal_newlines=True)
+            to_run = command.get_function(queue, check=True, stdout=DEVNULL, stderr=PIPE, universal_newlines=True)
             # go!
             to_run()
             print(TermStyle.GREEN + str(command) + TermStyle.RESET + ' complete')
@@ -208,7 +206,6 @@ def run_command(commands: Union[List[Command]]):
 
 
 def main():
-    parallel_mode = False
     commands = [
         # homebrew https://brew.sh/
         ['brew update', 'brew outdated', 'brew upgrade', 'brew cleanup'],
@@ -231,13 +228,25 @@ def main():
         # pecl https://pecl.php.net/
         ['pecl update-channels', 'pecl upgrade']
     ]
+
+    # list comprehension of commands to command objects
     command_objects = [[command_factory(command) for command in command_list] for command_list in commands]
-    if parallel_mode:
-        with Pool() as pool:
-            pool.map(run_command, command_objects)
-    else:
-        for command_object in command_objects:
-            run_command(command_object)
+
+    # create task queue
+    task_queue = JoinableQueue()
+
+    # start worker processes
+    for i in range(cpu_count()):
+        reader_p = Process(target=read_process, args=(task_queue,))
+        reader_p.daemon = True
+        reader_p.start()
+
+    # Add commands created above to the task queue
+    for command_set in command_objects:
+        task_queue.put(command_set)
+
+    # cleanup
+    task_queue.join()
 
 
 if __name__ == '__main__':
