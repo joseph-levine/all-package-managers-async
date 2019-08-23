@@ -21,13 +21,8 @@ Clone to somewhere in your path, and that should be it
 | vim-plug | https://github.com/junegunn/vim-plug |
 | yarn | https://yarnpkg.com/ |
 
-### Helper Files
-| File | Description |
-|---|---|
-| up-vim.vim | Updates all Vim Plug packages |
-
-
 ## Future
+- [x] Single file (easier to install for now)
 - [ ] More package managers
 - [ ] Better project structure
 - [ ] Installer
