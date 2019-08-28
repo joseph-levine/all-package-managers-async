@@ -230,7 +230,7 @@ def main():
         ['yarn global upgrade'],
 
         # Composer https://getcomposer.org/
-        ['xcomposer global update'],
+        ['composer global update'],
 
         # Oh My Zsh https://ohmyz.sh/
         [RecursiveGitCommand(Path.home().joinpath('.oh-my-zsh'))],
