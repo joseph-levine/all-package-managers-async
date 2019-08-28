@@ -17,8 +17,14 @@ Clone to somewhere in your path, and that should be it
 | Homebrew | https://brew.sh/ |
 | oh-my-zsh | https://ohmyz.sh/ |
 | oh-my-zsh custom plugins | https://github.com/robbyrussell/oh-my-zsh/wiki/Customization#overriding-and-adding-plugins |
+| npm | https://www.npmjs.com/ |
+| pathogen | https://github.com/tpope/vim-pathogen |
+| pecl | https://pecl.php.net/ |
 | pip | https://pypi.org/project/pip/ |
+| Ruby Gems | https://rubygems.org/ |
+| vim 8 | :help packages |
 | vim-plug | https://github.com/junegunn/vim-plug |
+| vundle | https://github.com/VundleVim/Vundle.vim |
 | yarn | https://yarnpkg.com/ |
 
 ## Future

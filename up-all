@@ -232,14 +232,40 @@ def main():
         # Oh My Zsh https://ohmyz.sh/
         [RecursiveGitCommand(Path.home().joinpath('.oh-my-zsh'))],
 
+        # npm https://www.npmjs.com/
+        ['for package in $(npm -g outdated --parseable --depth=0 | cut -d: -f2); do echo $package; done'],
+
+        # pathogen.vim https://github.com/tpope/vim-pathogen
+        ['pathogen=' + str(Path.home().joinpath('.vim/autoload/pathogen.vim')) +
+         ' && test -e $pathogen' +
+         ' && rm $pathogen' +
+         ' && curl -LSso $pathogen https://tpo.pe/pathogen.vim',
+         RecursiveGitCommand(Path.home().joinpath('.vim/bundle'))],
+
         # PECL https://pecl.php.net/
         ['pecl update-channels', 'pecl upgrade'],
 
         # pip https://pypi.org/project/pip/
         [NativeCommand(up_pip, 'update pip')],
 
+        # Ruby Gems https://rubygems.org/
+        ['gem update', 'gem cleanup'],
+
+        # vim 8 native plugin :help packages
+        # TODO: load these paths from the packpath option
+        [
+            RecursiveGitCommand(Path.home().joinpath('.vim')),
+            RecursiveGitCommand(Path('/usr/local/share/vim/vimfiles')),
+            RecursiveGitCommand(Path('/usr/local/share/vim/vim81')),
+            RecursiveGitCommand(Path('/usr/local/share/vim/vimfiles/after')),
+            RecursiveGitCommand(Path.home().joinpath('/.vim/after'))
+        ],
+
         # vim-plug https://github.com/junegunn/vim-plug
-        ['vim -c PlugUpdate -c PlugUpgrade -c quitall'],
+        ['vim -c PlugUpgrade -c PlugUpdate -c quitall'],
+
+        # Vundle.vim
+        [RecursiveGitCommand(Path.home().joinpath('.vim/bundle/Vundle.vim')), 'vim -c PluginUpdate -c quitall'],
 
         # Yarn https://yarnpkg.com/en/
         ['yarn global upgrade'],
