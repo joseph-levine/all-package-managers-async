@@ -123,7 +123,7 @@ class ShellCommand(Command):
         return self.__executable()
 
 
-class GitCommand(ShellCommand):
+class GitResetCommand(ShellCommand):
     def __init__(self, path: Path):
         self.__path = path
         super().__init__('git -C ' + str(path.absolute()) + ' reset --hard @{upstream}')
@@ -135,7 +135,22 @@ class GitCommand(ShellCommand):
         return super().__repr__()
 
     def __str__(self):
-        return 'git on ' + str(self.__path)
+        return 'git reset on ' + str(self.__path)
+
+
+class GitFetchCommand(ShellCommand):
+    def __init__(self, path: Path):
+        self.__path = path
+        super().__init__('git -C ' + str(path.absolute()) + ' fetch --all')
+
+    def isvalid(self) -> bool:
+        return self.__path.joinpath('.git').is_dir()
+
+    def __repr__(self):
+        return super().__repr__()
+
+    def __str__(self):
+        return 'git fetch on ' + str(self.__path)
 
 
 class RecursiveGitCommand(Command):
@@ -149,10 +164,11 @@ class RecursiveGitCommand(Command):
     def get_function(self, queue: JoinableQueue, **kwargs) -> FunctionType:
         def func():
             # create commands
-            git_commands = [GitCommand(git.parent) for git in self.__git_directories()]
+            git_commands = [[GitFetchCommand(git.parent), GitResetCommand(git.parent)]
+                            for git in self.__git_directories()]
             # add them to the queue
-            for git_command in git_commands:
-                queue.put([git_command])
+            for git_command_pair in git_commands:
+                queue.put(git_command_pair)
 
         return func
 
@@ -169,7 +185,7 @@ def command_factory(command: Union[Command, str, Path, FunctionType]) -> Command
     elif isinstance(command, str):
         return ShellCommand(command)
     elif isinstance(command, Path):
-        return GitCommand(command)
+        return GitResetCommand(command)
     elif isinstance(command, FunctionType):
         return NativeCommand(command, None)
 
@@ -214,7 +230,7 @@ def main():
         ['yarn global upgrade'],
 
         # Composer https://getcomposer.org/
-        ['composer global update'],
+        ['xcomposer global update'],
 
         # Oh My Zsh https://ohmyz.sh/
         [RecursiveGitCommand(Path.home().joinpath('.oh-my-zsh'))],
