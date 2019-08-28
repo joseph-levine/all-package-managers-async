@@ -233,7 +233,7 @@ def main():
         [RecursiveGitCommand(Path.home().joinpath('.oh-my-zsh'))],
 
         # npm https://www.npmjs.com/
-        ['for package in $(npm -g outdated --parseable --depth=0 | cut -d: -f2); do echo $package; done'],
+        ['for package in $(npm -g outdated --parseable --depth=0 | cut -d: -f2); do npm -g install "$package"; done'],
 
         # pathogen.vim https://github.com/tpope/vim-pathogen
         ['pathogen=' + str(Path.home().joinpath('.vim/autoload/pathogen.vim')) +
@@ -253,13 +253,13 @@ def main():
 
         # vim 8 native plugin :help packages
         # TODO: load these paths from the packpath option
-        [
-            RecursiveGitCommand(Path.home().joinpath('.vim')),
-            RecursiveGitCommand(Path('/usr/local/share/vim/vimfiles')),
-            RecursiveGitCommand(Path('/usr/local/share/vim/vim81')),
-            RecursiveGitCommand(Path('/usr/local/share/vim/vimfiles/after')),
-            RecursiveGitCommand(Path.home().joinpath('/.vim/after'))
-        ],
+        # [
+        #     RecursiveGitCommand(Path.home().joinpath('.vim')),
+        #     RecursiveGitCommand(Path('/usr/local/share/vim/vimfiles')),
+        #     RecursiveGitCommand(Path('/usr/local/share/vim/vim81')),
+        #     RecursiveGitCommand(Path('/usr/local/share/vim/vimfiles/after')),
+        #     RecursiveGitCommand(Path.home().joinpath('/.vim/after'))
+        # ],
 
         # vim-plug https://github.com/junegunn/vim-plug
         ['vim -c PlugUpgrade -c PlugUpdate -c quitall'],

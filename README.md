@@ -22,7 +22,7 @@ Clone to somewhere in your path, and that should be it
 | pecl | https://pecl.php.net/ |
 | pip | https://pypi.org/project/pip/ |
 | Ruby Gems | https://rubygems.org/ |
-| vim 8 | :help packages |
+| ~~vim 8~~ (broken) | :help packages |
 | vim-plug | https://github.com/junegunn/vim-plug |
 | vundle | https://github.com/VundleVim/Vundle.vim |
 | yarn | https://yarnpkg.com/ |
