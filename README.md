@@ -30,6 +30,7 @@ Clone to somewhere in your path, and that should be it
 ## Future
 - [x] Single file (easier to install for now)
 - [ ] More package managers
+- [ ] Mercurial/SVN support
 - [ ] Better project structure
 - [ ] Installer
 - [ ] Homebrew
@@ -47,8 +48,8 @@ there's one that is! (I'm looking at you [Homebrew][1]) But it can be
 frustrating when you have six different mangers, all with more security
 updates than you can handle.
 
-Adding to that headache, many truly stellar tools only come as git
-repositories.
+Adding to that headache, many truly stellar tools only come as version
+controlled repositories.
 
 Until we have one Package Manager to rule them all, One Package Manager
 to find them, here's a tool to bring them all and bind them.
