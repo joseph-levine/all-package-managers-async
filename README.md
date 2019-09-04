@@ -15,7 +15,7 @@ Clone to somewhere in your path, and that should be it
 up-all
 ```
 
-### Supported Package Managers
+## Supported Package Managers
 | Manager | URL |
 |---|---|
 | composer | https://getcomposer.org/ |
