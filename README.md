@@ -22,6 +22,7 @@ Clone to somewhere in your path, and that should be it
 | pecl | https://pecl.php.net/ |
 | pip | https://pypi.org/project/pip/ |
 | Ruby Gems | https://rubygems.org/ |
+| Vagrant Boxes | https://www.vagrantup.com/ |
 | ~~vim 8~~ (broken) | :help packages |
 | vim-plug | https://github.com/junegunn/vim-plug |
 | vundle | https://github.com/VundleVim/Vundle.vim |
@@ -55,4 +56,4 @@ Until we have one Package Manager to rule them all, One Package Manager
 to find them, here's a tool to bring them all and bind them.
 Asynchronously.
 
-[1]:https://brew.sh 
+[1]:https://brew.sh

@@ -251,6 +251,9 @@ def main():
         # Ruby Gems https://rubygems.org/
         ['gem update', 'gem cleanup'],
 
+        # Vagrant Box
+        ['vagrant box update', 'vagrant box prune'],
+
         # vim 8 native plugin :help packages
         # TODO: load these paths from the packpath option
         # [
