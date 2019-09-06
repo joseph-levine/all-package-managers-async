@@ -80,7 +80,7 @@ class Command(ABC):
 
 
 class NativeCommand(Command):
-    def __init__(self, native_call: Callable, description: str = ''):
+    def __init__(self, native_call: Callable, description: Optional[str] = None):
         self.__native_call = native_call
         self.__description = description
 
@@ -99,7 +99,7 @@ class NativeCommand(Command):
 
 
 class ShellCommand(Command):
-    def __init__(self, full_command: str, executable_command: str = None):
+    def __init__(self, full_command: str, executable_command: Optional[str] = None):
         self.__full_command = full_command
         self.__executable_command = executable_command
 
@@ -107,16 +107,16 @@ class ShellCommand(Command):
         return self.__full_command.split(' ')
 
     def __executable(self):
-        return self.__command_parts()[0]
+        return self.__executable_command or self.__command_parts()[0]
 
     def get_function(self, queue: JoinableQueue, **kwargs) -> FunctionType:
         def func():
-            run(self.__command_parts(), **kwargs)
+            run(self.__command_parts(), shell=True, **kwargs)
 
         return func
 
     def isvalid(self) -> bool:
-        return which(self.__command_parts()[0]) is not None
+        return which(self.__executable()) is not None
 
     def __repr__(self):
         return self.__full_command
@@ -249,41 +249,41 @@ def update(commands: List[List]) -> List[List]:
 def default_commands():
     return [
         # Composer https://getcomposer.org/
-        ['composer global update'],
+        # ['composer global update'],
 
         # Homebrew https://brew.sh/
-        ['brew update', 'brew outdated', 'brew upgrade', 'brew cleanup'],
+        # ['brew update', 'brew outdated', 'brew upgrade', 'brew cleanup'],
 
         # Oh My Zsh https://ohmyz.sh/
-        [RecursiveGitCommand(Path.home().joinpath('.oh-my-zsh'))],
+        # [RecursiveGitCommand(Path.home().joinpath('.oh-my-zsh'))],
 
         # npm https://www.npmjs.com/
         [
-            ShellCommand('for package in $(npm -g outdated --parseable --depth=0 | cut -d: -f2); do'
-                         '    npm -g install "$package"; '
+            ShellCommand('for package in $(npm -g outdated --parseable --depth=0 | cut -d: -f2); do' +
+                         '    npm -g install "$package"; ' +
                          'done', 'npm')
         ],
 
         # pathogen.vim https://github.com/tpope/vim-pathogen
         [ShellCommand('pathogen=' + str(Path.home().joinpath('.vim/autoload/pathogen.vim')) +
-         ' && test -e $pathogen' +
-         ' && rm $pathogen' +
+                      ' && test -e $pathogen' +
+                      ' && rm $pathogen' +
                       ' && curl -LSso $pathogen https://tpo.pe/pathogen.vim', 'true'),
          RecursiveGitCommand(Path.home().joinpath('.vim/bundle'))],
 
         # PECL https://pecl.php.net/
-        ['pecl update-channels', 'pecl upgrade'],
+        # ['pecl update-channels', 'pecl upgrade'],
 
         # pip https://pypi.org/project/pip/
-        [NativeCommand(up_pip, 'update pip')],
+        # [NativeCommand(up_pip, 'update pip')],
 
         # Ruby Gems https://rubygems.org/
-        ['gem update', 'gem cleanup'],
+        # ['gem update', 'gem cleanup'],
 
         # Vagrant Box
         [
-            ShellCommand("for b in $(vagrant box outdated --global | awk -F \"'\" '{print $2}'); do "
-                         '    vagrant box update --box $b; '
+            ShellCommand("for b in $(vagrant box outdated --global | awk -F \"'\" '{print $2}'); do " +
+                         '    vagrant box update --box $b; ' +
                          'done', 'vagrant'),
             'vagrant box prune'
         ],
@@ -299,13 +299,13 @@ def default_commands():
         # ],
 
         # vim-plug https://github.com/junegunn/vim-plug
-        ['vim -c PlugUpgrade -c PlugUpdate -c quitall'],
+        # ['vim -c PlugUpgrade -c PlugUpdate -c quitall'],
 
         # Vundle.vim
-        [RecursiveGitCommand(Path.home().joinpath('.vim/bundle/Vundle.vim')), 'vim -c PluginUpdate -c quitall'],
+        # [RecursiveGitCommand(Path.home().joinpath('.vim/bundle/Vundle.vim')), 'vim -c PluginUpdate -c quitall'],
 
         # Yarn https://yarnpkg.com/en/
-        ['yarn global upgrade'],
+        # ['yarn global upgrade'],
     ]
 
 
