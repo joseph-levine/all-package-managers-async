@@ -10,7 +10,12 @@ Python 3.5 is likely the minimum version, but I've only run it on Python
 ## Installation
 Clone to somewhere in your path, and that should be it
 
-### Supported Package Managers
+## Running
+```
+up-all
+```
+
+## Supported Package Managers
 | Manager | URL |
 |---|---|
 | composer | https://getcomposer.org/ |
@@ -44,7 +49,7 @@ Especially welcome are more package manager update lines. The goal is
 to be as comprehensive as possible.
 
 ## Why?
-Most package managers claim to be the only one you need. And maybe
+Many package managers claim to be the only one you need. And maybe
 there's one that is! (I'm looking at you [Homebrew][1]) But it can be
 frustrating when you have six different mangers, all with more security
 updates than you can handle.
