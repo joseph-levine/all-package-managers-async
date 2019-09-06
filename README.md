@@ -41,6 +41,7 @@ up-all
 - [ ] Installer
 - [ ] Homebrew
 - [ ] Cache list of installed package managers
+- [ ] Config (add/skip commands)
 
 ## Contributing
 Yes! Make a pull request, I'll try to get it in.

@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from multiprocessing import cpu_count, JoinableQueue, Process
 from os import linesep
 from pathlib import Path
+from pickle import dump, load
 from pkg_resources import working_set
 from shutil import which
 from subprocess import CalledProcessError, DEVNULL, PIPE, run
@@ -79,7 +80,7 @@ class Command(ABC):
 
 
 class NativeCommand(Command):
-    def __init__(self, native_call: Callable, description: Optional[str]):
+    def __init__(self, native_call: Callable, description: str = ''):
         self.__native_call = native_call
         self.__description = description
 
@@ -98,8 +99,9 @@ class NativeCommand(Command):
 
 
 class ShellCommand(Command):
-    def __init__(self, full_command: str):
+    def __init__(self, full_command: str, executable_command: str = None):
         self.__full_command = full_command
+        self.__executable_command = executable_command
 
     def __command_parts(self):
         return self.__full_command.split(' ')
@@ -221,8 +223,31 @@ def run_command(commands: List[Command], queue: JoinableQueue):
                 TermStyle.RED + str(command) + TermStyle.RESET + ' error' + linesep + TermStyle.RED + indented_message)
 
 
-def main():
-    commands = [
+def update(commands: List[List]) -> List[List]:
+    # list comprehension of commands to command objects
+    command_objects = [[command_factory(command) for command in command_list] for command_list in commands]
+
+    # create task queue
+    task_queue = JoinableQueue()
+
+    # start worker processes
+    for i in range(cpu_count()):
+        reader_p = Process(target=read_process, args=(task_queue,))
+        reader_p.daemon = True
+        reader_p.start()
+
+    # Add commands created above to the task queue
+    for command_set in command_objects:
+        task_queue.put(command_set)
+
+    # cleanup
+    task_queue.join()
+
+    return commands
+
+
+def default_commands():
+    return [
         # Composer https://getcomposer.org/
         ['composer global update'],
 
@@ -233,13 +258,17 @@ def main():
         [RecursiveGitCommand(Path.home().joinpath('.oh-my-zsh'))],
 
         # npm https://www.npmjs.com/
-        ['for package in $(npm -g outdated --parseable --depth=0 | cut -d: -f2); do npm -g install "$package"; done'],
+        [
+            ShellCommand('for package in $(npm -g outdated --parseable --depth=0 | cut -d: -f2); do'
+                         '    npm -g install "$package"; '
+                         'done', 'npm')
+        ],
 
         # pathogen.vim https://github.com/tpope/vim-pathogen
-        ['pathogen=' + str(Path.home().joinpath('.vim/autoload/pathogen.vim')) +
+        [ShellCommand('pathogen=' + str(Path.home().joinpath('.vim/autoload/pathogen.vim')) +
          ' && test -e $pathogen' +
          ' && rm $pathogen' +
-         ' && curl -LSso $pathogen https://tpo.pe/pathogen.vim',
+                      ' && curl -LSso $pathogen https://tpo.pe/pathogen.vim', 'true'),
          RecursiveGitCommand(Path.home().joinpath('.vim/bundle'))],
 
         # PECL https://pecl.php.net/
@@ -252,7 +281,12 @@ def main():
         ['gem update', 'gem cleanup'],
 
         # Vagrant Box
-        ['vagrant box update', 'vagrant box prune'],
+        [
+            ShellCommand("for b in $(vagrant box outdated --global | awk -F \"'\" '{print $2}'); do "
+                         '    vagrant box update --box $b; '
+                         'done', 'vagrant'),
+            'vagrant box prune'
+        ],
 
         # vim 8 native plugin :help packages
         # TODO: load these paths from the packpath option
@@ -274,24 +308,30 @@ def main():
         ['yarn global upgrade'],
     ]
 
-    # list comprehension of commands to command objects
-    command_objects = [[command_factory(command) for command in command_list] for command_list in commands]
 
-    # create task queue
-    task_queue = JoinableQueue()
+def load_cached() -> Optional[List[List]]:
+    try:
+        with Path.home().joinpath('.up-all/cached').open('rb') as pickled:
+            return load(pickled)
+    except (FileNotFoundError, EOFError):
+        return None
 
-    # start worker processes
-    for i in range(cpu_count()):
-        reader_p = Process(target=read_process, args=(task_queue,))
-        reader_p.daemon = True
-        reader_p.start()
 
-    # Add commands created above to the task queue
-    for command_set in command_objects:
-        task_queue.put(command_set)
+def cache(functioning_updates: List[List]):
+    python_cache_location = Path.home().joinpath('.up-all')
 
-    # cleanup
-    task_queue.join()
+    if not python_cache_location.exists():
+        python_cache_location.mkdir()
+
+    with python_cache_location.joinpath('cached').open('wb') as cache_file:
+        dump(functioning_updates, cache_file)
+
+
+def main():
+    commands = load_cached() or default_commands()
+    result = update(commands)
+    if result is not None:
+        cache(result)
 
 
 if __name__ == '__main__':
